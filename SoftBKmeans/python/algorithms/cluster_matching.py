@@ -7,6 +7,15 @@ class ClusterMatching:
         self.K = num_clusters
         self.params = clustering_params
 
+    def cluster_formations(self):
+        for path in self.files:
+            data, labels = self.run_clustering(path)
+            centroids = self.compute_centroids(data, labels)
+            self.formations.append(data)
+            self.labels.append(labels)
+            self.centroids.append(centroids)
+            self.plot_clusters(data, labels, centroids, os.path.basename(path))
+
     def run_clustering(self, file_path):
         data = np.loadtxt(file_path)
         labels = balkmeans(data.tolist(), **self.params)

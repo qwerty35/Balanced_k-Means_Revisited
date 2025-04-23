@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-from formation_manager import FormationManager
-from algorithms.cluster_matching import ClusterMatching
+from algorithms.hungarian_cluster_matching import HungarianClusterMatching
+from algorithms.lbap_cluster_matching import LBAPClusterMatching
 
 # 포메이션 데이터 파일 리스트
 formation_files = [
@@ -11,7 +11,7 @@ formation_files = [
 ]
 
 # 클러스터 수 및 BKM+ 파라미터
-num_clusters = 40
+num_clusters = 20
 
 # BKM+ 파라미터
 bkm_params = {
@@ -23,11 +23,8 @@ bkm_params = {
     'postprocess_iterations': 10
 }
 
-# 클러스터 기반 매칭 전략 객체 생성
-matching_strategy = ClusterMatching(num_clusters=num_clusters, clustering_params=bkm_params)
+# hungarian_cluster_matching = HungarianClusterMatching(formation_files, num_clusters=num_clusters, clustering_params=bkm_params)
+# hungarian_cluster_matching.run()
 
-# FormationManager 초기화 및 실행
-manager = FormationManager(formation_files, num_clusters, matching_strategy)
-manager.cluster_formations()
-manager.transition_and_visualize()
-manager.summarize()
+lbap_cluster_matching = LBAPClusterMatching(formation_files, num_clusters=num_clusters, clustering_params=bkm_params)
+lbap_cluster_matching.run()
