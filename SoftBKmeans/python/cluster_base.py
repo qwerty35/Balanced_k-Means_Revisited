@@ -5,10 +5,13 @@ import matplotlib.pyplot as plt
 import os
 
 class ClusterMatchingBase(ABC):
-    def __init__(self, formation_files, num_clusters, clustering_params):
+    def __init__(self, formation_files, num_clusters, clustering_params, cluster_matcher,
+                 agent_matcher):
         self.files = formation_files
         self.K = num_clusters
         self.params = clustering_params
+        self.cluster_matcher = cluster_matcher
+        self.agent_matcher = agent_matcher
         self.formations = []
         self.labels = []
         self.centroids = []

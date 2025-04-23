@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-from algorithms.hungarian_cluster_matching import HungarianClusterMatching
-from algorithms.lbap_cluster_matching import LBAPClusterMatching
+from SoftBKmeans.python.hungarian_cluster_matching import HungarianClusterMatching
+from SoftBKmeans.python.lbap_cluster_matching import LBAPClusterMatching
+from SoftBKmeans.python.matching_functions import mean_cost_matrix, hungarian_match, bottleneck_cost_matrix, bottleneck_match
 
 # 포메이션 데이터 파일 리스트
 formation_files = [
@@ -23,8 +24,20 @@ bkm_params = {
     'postprocess_iterations': 10
 }
 
-# hungarian_cluster_matching = HungarianClusterMatching(formation_files, num_clusters=num_clusters, clustering_params=bkm_params)
-# hungarian_cluster_matching.run()
+hungarian_cluster_matching = HungarianClusterMatching(
+    formation_files,
+    num_clusters=num_clusters,
+    clustering_params=bkm_params,
+    cluster_matcher=mean_cost_matrix,
+    agent_matcher=hungarian_match
+)
+hungarian_cluster_matching.run()
 
-lbap_cluster_matching = LBAPClusterMatching(formation_files, num_clusters=num_clusters, clustering_params=bkm_params)
-lbap_cluster_matching.run()
+# lbap_cluster_matching = LBAPClusterMatching(
+#     formation_files,
+#     num_clusters=num_clusters,
+#     clustering_params=bkm_params,
+#     cluster_matcher=bottleneck_cost_matrix,
+#     agent_matcher=bottleneck_match
+# )
+# lbap_cluster_matching.run()

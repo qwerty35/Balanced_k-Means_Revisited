@@ -1,6 +1,6 @@
 import numpy as np
-from scipy.optimize import linear_sum_assignment
-from .cluster_base import ClusterMatchingBase
+from cluster_base import ClusterMatchingBase
+from matching_functions import bottleneck_cluster_assignment
 
 class LBAPClusterMatching(ClusterMatchingBase):
     def match_all(self):
@@ -9,30 +9,24 @@ class LBAPClusterMatching(ClusterMatchingBase):
             fpos, tpos = self.formations[i], self.formations[i + 1]
             flab, tlab = self.labels[i], self.labels[i + 1]
 
-            cost_matrix = self._compute_bottleneck_cost_matrix(fpos, flab, tpos, tlab)
-            cmatch = list(zip(*linear_sum_assignment(cost_matrix)))
+            # 클러스터 간 비용 행렬 생성
+            cost_matrix = self.cluster_matcher(fpos, flab, tpos, tlab, self.K)
+
+            # LBAP 기반 클러스터 간 매칭
+            row_ind, col_ind = bottleneck_cluster_assignment(cost_matrix)
 
             row_inds, col_inds = [], []
-            for fc, tc in cmatch:
+            for fc, tc in zip(row_ind, col_ind):
                 fidx = np.where(flab == fc)[0]
                 tidx = np.where(tlab == tc)[0]
                 A, B = fpos[fidx], tpos[tidx]
-                D = np.linalg.norm(A[:, None] - B[None, :], axis=2)
-                r, c = linear_sum_assignment(D)
+
+                # 클러스터 내부 에이전트 매칭 (주입된 전략 사용)
+                r, c = self.agent_matcher(A, B)
                 row_inds.extend(fidx[r])
                 col_inds.extend(tidx[c])
 
             self.transitions.append((np.array(row_inds), np.array(col_inds)))
-
-    def _compute_bottleneck_cost_matrix(self, fpos, flab, tpos, tlab):
-        cost = np.zeros((self.K, self.K))
-        for i in range(self.K):
-            fi = fpos[flab == i]
-            for j in range(self.K):
-                tj = tpos[tlab == j]
-                dists = np.linalg.norm(fi[:, None] - tj[None, :], axis=2)
-                cost[i, j] = np.max(dists)
-        return cost
 
     def summarize(self):
         total_dists = np.zeros(self.formations[0].shape[0])

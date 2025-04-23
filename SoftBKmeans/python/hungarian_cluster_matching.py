@@ -1,6 +1,7 @@
+
 import numpy as np
 from scipy.optimize import linear_sum_assignment
-from .cluster_base import ClusterMatchingBase
+from cluster_base import ClusterMatchingBase
 
 class HungarianClusterMatching(ClusterMatchingBase):
     def match_all(self):
@@ -9,7 +10,7 @@ class HungarianClusterMatching(ClusterMatchingBase):
             fpos, tpos = self.formations[i], self.formations[i + 1]
             flab, tlab = self.labels[i], self.labels[i + 1]
 
-            cost_matrix = self._compute_cluster_cost_matrix(fpos, flab, tpos, tlab)
+            cost_matrix = self.cluster_matcher(fpos, flab, tpos, tlab, self.K)
             cmatch = list(zip(*linear_sum_assignment(cost_matrix)))
 
             row_inds, col_inds = [], []
@@ -17,21 +18,11 @@ class HungarianClusterMatching(ClusterMatchingBase):
                 fidx = np.where(flab == fc)[0]
                 tidx = np.where(tlab == tc)[0]
                 A, B = fpos[fidx], tpos[tidx]
-                D = np.linalg.norm(A[:, None] - B[None, :], axis=2)
-                r, c = linear_sum_assignment(D)
+                r, c = self.agent_matcher(A, B)
                 row_inds.extend(fidx[r])
                 col_inds.extend(tidx[c])
 
             self.transitions.append((np.array(row_inds), np.array(col_inds)))
-
-    def _compute_cluster_cost_matrix(self, fpos, flab, tpos, tlab):
-        cost = np.zeros((self.K, self.K))
-        for i in range(self.K):
-            fi = fpos[flab == i]
-            for j in range(self.K):
-                tj = tpos[tlab == j]
-                cost[i, j] = np.mean(np.linalg.norm(fi[:, None] - tj[None, :], axis=2))
-        return cost
 
     def summarize(self):
         total_dists = np.zeros(self.formations[0].shape[0])
