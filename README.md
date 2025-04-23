@@ -11,6 +11,7 @@ https://aimspress.com/article/doi/10.3934/aci.2023008
 
 Compile:
 ```
+sudo apt-get install gnuplot
 cd SoftBKmeans
 make
 ```
