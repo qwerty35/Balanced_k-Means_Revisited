@@ -5,15 +5,16 @@ from balkmeans import balkmeans
 
 class ClusterMatching:
     def __init__(self, formation_files, num_clusters, clustering_params,
-                 cluster_match_fn, cluster_cost_fn,
-                 agent_match_fn, agent_cost_fn):
+                 cluster_cost_fn, cluster_assign_fn,
+                 agent_cost_fn, agent_assign_fn):
         self.files = formation_files
         self.K = num_clusters
         self.params = clustering_params
-        self.cluster_matcher = cluster_match_fn
-        self.cost_matrix_fn = cluster_cost_fn
-        self.agent_matcher = agent_match_fn
+
+        self.cluster_cost_fn = cluster_cost_fn
+        self.cluster_assign_fn = cluster_assign_fn
         self.agent_cost_fn = agent_cost_fn
+        self.agent_assign_fn = agent_assign_fn
 
         self.formations = []
         self.labels = []
@@ -47,8 +48,8 @@ class ClusterMatching:
             fpos, tpos = self.formations[i], self.formations[i + 1]
             flab, tlab = self.labels[i], self.labels[i + 1]
 
-            cost_matrix = self.cost_matrix_fn(fpos, flab, tpos, tlab, self.K)
-            row_ind, col_ind = self.cluster_matcher(cost_matrix=cost_matrix)
+            cluster_cost = self.cluster_cost_fn(self.agent_cost_fn, fpos, flab, tpos, tlab, self.K)
+            row_ind, col_ind = self.cluster_assign_fn(cluster_cost)
 
             row_inds, col_inds = [], []
             for fc, tc in zip(row_ind, col_ind):
@@ -56,7 +57,7 @@ class ClusterMatching:
                 tidx = np.where(tlab == tc)[0]
                 A, B = fpos[fidx], tpos[tidx]
                 agent_cost = self.agent_cost_fn(A, B)
-                r, c = self.agent_matcher(cost_matrix=agent_cost)
+                r, c = self.agent_assign_fn(agent_cost)
                 row_inds.extend(fidx[r])
                 col_inds.extend(tidx[c])
 
@@ -67,8 +68,10 @@ class ClusterMatching:
         for i, (rind, cind) in enumerate(self.transitions):
             moved = np.linalg.norm(self.formations[i][rind] - self.formations[i + 1][cind], axis=1)
             total_dists += moved
-        print(f"\n[ClusterMatching] 평균 이동 거리: {np.mean(total_dists):.2f}")
-        print(f"[ClusterMatching] 최대 이동 거리: {np.max(total_dists):.2f}")
+            print(f"\n[Transition {i} → {i + 1}] 평균 이동 거리: {np.mean(moved):.2f}")
+            print(f"[Transition {i} → {i + 1}] 최대 이동 거리: {np.max(moved):.2f}")
+        print(f"\n[Total] 평균 이동 거리: {np.mean(total_dists):.2f}")
+        print(f"[Total] 최대 이동 거리: {np.max(total_dists):.2f}")
 
     def plot_clusters(self, data, labels, centroids, title):
         plt.figure(figsize=(8, 8))

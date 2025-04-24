@@ -7,7 +7,8 @@ import matching_functions as mf
 formation_files = [
     '../datasets/s1_generated_Ashape.txt',
     '../datasets/s1_generated_Bshape.txt',
-    '../datasets/s1_generated_Cshape.txt'
+    '../datasets/s1_generated_Cshape.txt',
+    '../datasets/s1_generated_Dshape.txt'
 ]
 
 # 클러스터 수 및 BKM+ 파라미터
@@ -24,25 +25,25 @@ bkm_params = {
 }
 
 # Hungarian
-cluster_matching = ClusterMatching(
-    formation_files,
-    num_clusters=num_clusters,
-    clustering_params=bkm_params,
-    cluster_match_fn=mf.hungarian_assign,
-    cluster_cost_fn=mf.cluster_mean_cost,
-    agent_match_fn=mf.hungarian_assign,
-    agent_cost_fn=mf.mean_cost
-)
-
-# LBAP
 # cluster_matching = ClusterMatching(
 #     formation_files,
 #     num_clusters=num_clusters,
 #     clustering_params=bkm_params,
-#     cluster_match_fn=mf.bottleneck_assign,
-#     cluster_cost_fn=mf.cluster_max_cost,
-#     agent_match_fn=mf.bottleneck_assign,
-#     agent_cost_fn=mf.max_cost
+#     cluster_cost_fn=mf.cluster_mean_cost,
+#     cluster_assign_fn=mf.hungarian_assign,
+#     agent_cost_fn=mf.euclidean_distance_cost,
+#     agent_assign_fn=mf.hungarian_assign
 # )
+
+# LBAP
+cluster_matching = ClusterMatching(
+    formation_files,
+    num_clusters=num_clusters,
+    clustering_params=bkm_params,
+    cluster_cost_fn=mf.cluster_max_cost,
+    cluster_assign_fn=mf.bottleneck_assign,
+    agent_cost_fn=mf.euclidean_distance_cost,
+    agent_assign_fn=mf.bottleneck_assign
+)
 
 cluster_matching.run()

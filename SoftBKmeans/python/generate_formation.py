@@ -86,9 +86,34 @@ def generate_letter_positions(letter='A', n_agents=10000, width=1000, height=100
                 x + np.random.uniform(-thickness, thickness),
                 y + np.random.uniform(-thickness, thickness)
             ))
+    elif letter.upper() == 'D':
+        n_spine = n_agents // 4
+        n_arc = n_agents - n_spine
+        cx = width * 0.3
+
+        # 세로 기둥 (왼쪽)
+        for i in range(n_spine):
+            y = (i / n_spine) * height
+            x = cx
+            agents.append((
+                x + np.random.uniform(-thickness, thickness),
+                y + np.random.uniform(-thickness, thickness)
+            ))
+
+        # 오른쪽 반원
+        r = height * 0.5
+        center = (cx, height / 2)
+        for i in range(n_arc):
+            theta = np.pi * (i / n_arc) - np.pi / 2  # [-π/2, π/2]
+            x = center[0] + r * np.cos(theta)
+            y = center[1] + r * np.sin(theta)
+            agents.append((
+                x + np.random.uniform(-thickness, thickness),
+                y + np.random.uniform(-thickness, thickness)
+            ))
 
     else:
-        raise ValueError("지원하지 않는 문자입니다. 'A', 'B', 'C' 중 하나를 선택하세요.")
+        raise ValueError("지원하지 않는 문자입니다. 'A', 'B', 'C', 'D' 중 하나를 선택하세요.")
 
     return np.array(agents)
 
@@ -98,3 +123,5 @@ positions = generate_letter_positions(letter='B', n_agents=10000)
 np.savetxt("../datasets/s1_generated_Bshape.txt", positions.astype(int), fmt="%6d")
 positions = generate_letter_positions(letter='C', n_agents=10000)
 np.savetxt("../datasets/s1_generated_Cshape.txt", positions.astype(int), fmt="%6d")
+positions = generate_letter_positions(letter='D', n_agents=10000)
+np.savetxt("../datasets/s1_generated_Dshape.txt", positions.astype(int), fmt="%6d")

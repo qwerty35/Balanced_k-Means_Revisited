@@ -48,6 +48,7 @@ Usage: bkmeans -i FILENAME [-k <n>] -o FILENAME -c FILENAME [--seed=INT] [--visu
 ```
 git clone https://github.com/uef-machine-learning/Balanced_k-Means_Revisited
 cd Balanced_k-Means_Revisited/SoftBKmeans/
+pip install pulp
 pip install .
 ./py_example.py
 ```
