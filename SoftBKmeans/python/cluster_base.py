@@ -1,3 +1,4 @@
+
 import numpy as np
 from abc import ABC, abstractmethod
 from balkmeans import balkmeans
@@ -5,12 +6,12 @@ import matplotlib.pyplot as plt
 import os
 
 class ClusterMatchingBase(ABC):
-    def __init__(self, formation_files, num_clusters, clustering_params, cluster_matcher,
-                 agent_matcher):
+    def __init__(self, formation_files, num_clusters, clustering_params, cluster_matcher, cost_matrix, agent_matcher):
         self.files = formation_files
         self.K = num_clusters
         self.params = clustering_params
         self.cluster_matcher = cluster_matcher
+        self.cost_matrix_fn = cost_matrix
         self.agent_matcher = agent_matcher
         self.formations = []
         self.labels = []
@@ -66,8 +67,7 @@ class ClusterMatchingBase(ABC):
         plt.figure(figsize=(10, 10))
         for i, j in zip(row_ind, col_ind):
             color = from_labels[i] % 20
-            plt.plot([from_pos[i, 0], to_pos[j, 0]],
-                     [from_pos[i, 1], to_pos[j, 1]],
+            plt.plot([from_pos[i, 0], to_pos[j, 0]], [from_pos[i, 1], to_pos[j, 1]],
                      color=plt.cm.tab20(color), alpha=0.2, linewidth=0.5)
 
         plt.scatter(from_pos[:, 0], from_pos[:, 1], c=from_labels, cmap='tab20', s=5, label="From")

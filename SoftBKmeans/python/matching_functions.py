@@ -1,7 +1,7 @@
+
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
-# 클러스터 간 평균 거리 행렬 생성 (Hungarian용)
 def mean_cost_matrix(fpos, flab, tpos, tlab, K):
     cost = np.zeros((K, K))
     for i in range(K):
@@ -11,8 +11,7 @@ def mean_cost_matrix(fpos, flab, tpos, tlab, K):
             cost[i, j] = np.mean(np.linalg.norm(fi[:, None] - tj[None, :], axis=2))
     return cost
 
-# 클러스터 간 최대 거리 행렬 생성 (LBAP용)
-def bottleneck_cost_matrix(fpos, flab, tpos, tlab, K):
+def max_cost_matrix(fpos, flab, tpos, tlab, K):
     cost = np.zeros((K, K))
     for i in range(K):
         fi = fpos[flab == i]
@@ -21,13 +20,14 @@ def bottleneck_cost_matrix(fpos, flab, tpos, tlab, K):
             cost[i, j] = np.max(np.linalg.norm(fi[:, None] - tj[None, :], axis=2))
     return cost
 
-# 에이전트 간 Hungarian 매칭 (sum of distances 최소화)
 def hungarian_match(A, B):
     cost_matrix = np.linalg.norm(A[:, None] - B[None, :], axis=2)
     row_ind, col_ind = linear_sum_assignment(cost_matrix)
     return row_ind, col_ind
 
-# 에이전트 간 LBAP 매칭 (max of distances 최소화)
+def hungarian_cluster_assignment(cost_matrix):
+    return linear_sum_assignment(cost_matrix)
+
 def bottleneck_match(A, B):
     cost_matrix = np.linalg.norm(A[:, None] - B[None, :], axis=2)
     low, high = 0, np.max(cost_matrix)
@@ -41,7 +41,6 @@ def bottleneck_match(A, B):
         except:
             return False, None
 
-    best = None
     for _ in range(50):
         mid = (low + high) / 2
         feasible, matching = can_assign(mid)
@@ -53,7 +52,7 @@ def bottleneck_match(A, B):
 
     return best
 
-# 클러스터 간 LBAP 매칭 (최대 거리 최소화)
+
 def bottleneck_cluster_assignment(cost_matrix):
     low, high = 0, np.max(cost_matrix)
 
