@@ -28,9 +28,10 @@ cluster_matching = ClusterMatching(
     formation_files,
     num_clusters=num_clusters,
     clustering_params=bkm_params,
-    cluster_matcher=mf.hungarian_cluster_assignment,
-    cost_matrix=mf.mean_cost_matrix,
-    agent_matcher=mf.hungarian_match
+    cluster_match_fn=mf.hungarian_assign,
+    cluster_cost_fn=mf.cluster_mean_cost,
+    agent_match_fn=mf.hungarian_assign,
+    agent_cost_fn=mf.mean_cost
 )
 
 # LBAP
@@ -38,9 +39,10 @@ cluster_matching = ClusterMatching(
 #     formation_files,
 #     num_clusters=num_clusters,
 #     clustering_params=bkm_params,
-#     cluster_matcher=mf.bottleneck_cluster_assignment,
-#     cost_matrix=mf.bottleneck_cost_matrix,
-#     agent_matcher=mf.bottleneck_match
+#     cluster_match_fn=mf.bottleneck_assign,
+#     cluster_cost_fn=mf.cluster_max_cost,
+#     agent_match_fn=mf.bottleneck_assign,
+#     agent_cost_fn=mf.max_cost
 # )
 
 cluster_matching.run()
