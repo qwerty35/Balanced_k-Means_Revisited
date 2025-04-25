@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from SoftBKmeans.python.cluster_matching import ClusterMatching
+from SoftBKmeans.python.multi_step_cluster_matching import MultiStepClusterMatching
 import matching_functions as mf
 
 # 포메이션 데이터 파일 리스트
@@ -25,25 +26,37 @@ bkm_params = {
 }
 
 # Hungarian
-# cluster_matching = ClusterMatching(
-#     formation_files,
-#     num_clusters=num_clusters,
-#     clustering_params=bkm_params,
-#     cluster_cost_fn=mf.cluster_mean_cost,
-#     cluster_assign_fn=mf.hungarian_assign,
-#     agent_cost_fn=mf.euclidean_distance_cost,
-#     agent_assign_fn=mf.hungarian_assign
-# )
-
-# LBAP
 cluster_matching = ClusterMatching(
     formation_files,
     num_clusters=num_clusters,
     clustering_params=bkm_params,
-    cluster_cost_fn=mf.cluster_max_cost,
-    cluster_assign_fn=mf.bottleneck_assign,
+    cluster_cost_fn=mf.cluster_mean_cost,
+    cluster_assign_fn=mf.hungarian_assign,
     agent_cost_fn=mf.euclidean_distance_cost,
-    agent_assign_fn=mf.bottleneck_assign
+    agent_assign_fn=mf.hungarian_assign
 )
 
+# LBAP
+# cluster_matching = ClusterMatching(
+#     formation_files,
+#     num_clusters=num_clusters,
+#     clustering_params=bkm_params,
+#     cluster_cost_fn=mf.cluster_max_cost,
+#     cluster_assign_fn=mf.bottleneck_assign,
+#     agent_cost_fn=mf.euclidean_distance_cost,
+#     agent_assign_fn=mf.bottleneck_assign
+# )
+
 cluster_matching.run()
+
+# multi_cluster_matching = MultiStepClusterMatching(
+#     formation_files=formation_files,
+#     num_clusters=num_clusters,
+#     clustering_params=bkm_params,
+#     cluster_cost_fn=mf.cluster_max_cost,
+#     cluster_assign_fn=mf.bottleneck_assign,
+#     agent_cost_fn=mf.euclidean_distance_cost,
+#     agent_assign_fn=mf.bottleneck_assign
+# )
+#
+# multi_cluster_matching.run()
