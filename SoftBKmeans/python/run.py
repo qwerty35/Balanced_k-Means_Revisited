@@ -13,7 +13,7 @@ formation_files = [
 ]
 
 # 클러스터 수 및 BKM+ 파라미터
-num_clusters = 20
+num_clusters = 40
 
 # BKM+ 파라미터
 bkm_params = {
@@ -35,6 +35,7 @@ cluster_matching = ClusterMatching(
     agent_cost_fn=mf.euclidean_distance_cost,
     agent_assign_fn=mf.hungarian_assign
 )
+cluster_matching.run()
 
 # LBAP
 # cluster_matching = ClusterMatching(
@@ -46,17 +47,14 @@ cluster_matching = ClusterMatching(
 #     agent_cost_fn=mf.euclidean_distance_cost,
 #     agent_assign_fn=mf.bottleneck_assign
 # )
-
-cluster_matching.run()
+# cluster_matching.run()
 
 # multi_cluster_matching = MultiStepClusterMatching(
 #     formation_files=formation_files,
 #     num_clusters=num_clusters,
 #     clustering_params=bkm_params,
 #     cluster_cost_fn=mf.cluster_max_cost,
-#     cluster_assign_fn=mf.bottleneck_assign,
 #     agent_cost_fn=mf.euclidean_distance_cost,
 #     agent_assign_fn=mf.bottleneck_assign
 # )
-#
 # multi_cluster_matching.run()

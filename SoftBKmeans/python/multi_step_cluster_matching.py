@@ -1,15 +1,16 @@
 import numpy as np
 from pulp import LpProblem, LpMinimize, LpVariable, lpSum, LpBinary
+import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 class MultiStepClusterMatching:
     def __init__(self, formation_files, num_clusters, clustering_params,
-                 cluster_cost_fn, cluster_assign_fn,
+                 cluster_cost_fn,
                  agent_cost_fn, agent_assign_fn):
         self.files = formation_files
         self.K = num_clusters
         self.params = clustering_params
         self.cluster_cost_fn = cluster_cost_fn
-        self.cluster_assign_fn = cluster_assign_fn
         self.agent_cost_fn = agent_cost_fn
         self.agent_assign_fn = agent_assign_fn
 
@@ -33,7 +34,8 @@ class MultiStepClusterMatching:
 
     def match_all(self):
         cost_fn = lambda f, fl, t, tl, K: self.cluster_cost_fn(self.agent_cost_fn, f, fl, t, tl, K)
-        cluster_matches = self.multi_step_cluster_matcher_pulp(self.formations, self.labels, cost_fn)
+        cluster_matches = self.multi_step_bottleneck_matching(self.formations, self.labels, cost_fn)
+
         self.transitions = []
 
         for t, step in enumerate(cluster_matches):
@@ -48,11 +50,18 @@ class MultiStepClusterMatching:
                 col_inds.extend(tidx[c])
             self.transitions.append((np.array(row_inds), np.array(col_inds)))
 
-    def solve_cluster_milp(self, cost_matrices):
-        T = len(cost_matrices)
-        K = cost_matrices[0].shape[0]
+    def multi_step_hungarian_matching(self, formations, labels, cost_fn):
+        T = len(formations) - 1
+        K = len(np.unique(labels[0]))
+        cost_matrices = []
 
-        prob = LpProblem("MultiStepClusterMatching", LpMinimize)
+        for t in range(T):
+            fpos, flab = formations[t], labels[t]
+            tpos, tlab = formations[t + 1], labels[t + 1]
+            cost_matrix = cost_fn(fpos, flab, tpos, tlab, K)
+            cost_matrices.append(cost_matrix)
+
+        prob = LpProblem("MultiStepHungarianMatching", LpMinimize)
 
         x = [[[LpVariable(f"x_{t}_{i}_{j}", cat=LpBinary)
                for j in range(K)] for i in range(K)] for t in range(T)]
@@ -79,18 +88,74 @@ class MultiStepClusterMatching:
 
         return matchings
 
-    def multi_step_cluster_matcher_pulp(self, formations, labels, cost_fn):
+    def multi_step_bottleneck_matching(self, formations, labels, cluster_cost_fn):
         T = len(formations) - 1
         K = len(np.unique(labels[0]))
-        cost_matrices = []
 
+        # Precompute cost matrices
+        cost_matrices = []
         for t in range(T):
             fpos, flab = formations[t], labels[t]
             tpos, tlab = formations[t + 1], labels[t + 1]
-            cost_matrix = cost_fn(fpos, flab, tpos, tlab, K)
-            cost_matrices.append(cost_matrix)
+            cost_matrices.append(cluster_cost_fn(fpos, flab, tpos, tlab, K))
 
-        return self.solve_cluster_milp(cost_matrices)
+        prob = LpProblem("MultiStepBottleneckMatching", LpMinimize)
+
+        # Variables
+        x = [[[[LpVariable(f"x_{t}_{g}_{i}_{j}", cat=LpBinary)
+                for j in range(K)] for i in range(K)] for g in range(K)] for t in range(T)]
+
+        d = [LpVariable(f"d_{g}", lowBound=0) for g in range(K)]  # group 누적 거리
+        z = LpVariable("z", lowBound=0)  # 최대 누적 거리
+
+        # Objective: minimize z
+        prob += z
+
+        # Constraints: initial position constraint
+        for g in range(K):
+            prob += lpSum(x[0][g][g][j] for j in range(K)) == 1
+
+        # Constraints: single move constraint at each step
+        for t in range(T):
+            for g in range(K):
+                prob += lpSum(x[t][g][i][j] for i in range(K) for j in range(K)) == 1
+
+        # Constraints: one to one matching
+        for t in range(T):
+            for j in range(K):
+                prob += lpSum(x[t][g][i][j] for g in range(K) for i in range(K)) == 1
+
+        # Constraints: flow conservation
+        for t in range(1, T):
+            for g in range(K):
+                for i in range(K):
+                    prob += lpSum(x[t - 1][g][j][i] for j in range(K)) == lpSum(x[t][g][i][j] for j in range(K))
+
+        # Constraints: define cumulative distance for each agent
+        for g in range(K):
+            total_distance_expr = lpSum(cost_matrices[t][i][j] * x[t][g][i][j]
+                                        for t in range(T) for i in range(K) for j in range(K))
+            prob += d[g] == total_distance_expr
+
+        # Constraints: each d[a] ≤ z
+        for g in range(K):
+            prob += d[g] <= z
+
+        # Solve
+        prob.solve()
+
+        # Extract matches
+        matchings = []
+        for t in range(T):
+            match = []
+            for i in range(K):
+                for j in range(K):
+                    count = sum(x[t][g][i][j].varValue for g in range(K))
+                    if count > 0.5:
+                        match.append((i, j))
+            matchings.append(match)
+
+        return matchings
 
     def summarize(self):
         total_dists = np.zeros(self.formations[0].shape[0])
@@ -98,24 +163,55 @@ class MultiStepClusterMatching:
             moved = np.linalg.norm(self.formations[i][rind] - self.formations[i + 1][cind], axis=1)
             print(f"[Transition {i} → {i + 1}] 평균 이동 거리: {np.mean(moved):.2f}, 최대 이동 거리: {np.max(moved):.2f}")
             total_dists += moved
-        print(f"\n[Total] 평균 이동 거리: {np.mean(total_dists):.2f}")
-        print(f"[Total] 최대 이동 거리: {np.max(total_dists):.2f}")
+        print(f"\n[Total] 평균 이동 거리: {np.mean(total_dists):.2f}, 최대 이동 거리: {np.max(total_dists):.2f}")
+
+    # def visualize_transitions(self):
+    #     for i, (rind, cind) in enumerate(self.transitions):
+    #         plt.figure(figsize=(10, 10))
+    #         for a, b in zip(rind, cind):
+    #             plt.plot(
+    #                 [self.formations[i][a, 0], self.formations[i + 1][b, 0]],
+    #                 [self.formations[i][a, 1], self.formations[i + 1][b, 1]],
+    #                 color=plt.cm.tab20(self.labels[i][a] % 20), alpha=0.02, linewidth=0.5
+    #             )
+    #         plt.scatter(self.formations[i][:, 0], self.formations[i][:, 1], c=self.labels[i][rind], cmap='tab20', s=5, label='From')
+    #         plt.scatter(self.formations[i + 1][cind, 0], self.formations[i + 1][cind, 1],
+    #                     c=self.labels[i][rind], cmap='tab20', s=5, marker='x', label='To')
+    #         plt.title(f"Transition {i} → {i + 1}")
+    #         plt.grid(True)
+    #         plt.legend()
+    #         plt.tight_layout()
+    #         plt.show()
 
     def visualize_transitions(self):
-        import matplotlib.pyplot as plt
         for i, (rind, cind) in enumerate(self.transitions):
-            plt.figure(figsize=(10, 10))
-            for a, b in zip(rind, cind):
-                plt.plot(
-                    [self.formations[i][a, 0], self.formations[i + 1][b, 0]],
-                    [self.formations[i][a, 1], self.formations[i + 1][b, 1]],
-                    color=plt.cm.tab20(self.labels[i][a] % 20), alpha=0.2, linewidth=0.5
-                )
-            plt.scatter(self.formations[i][:, 0], self.formations[i][:, 1], c=self.labels[i], cmap='tab20', s=5, label='From')
-            plt.scatter(self.formations[i + 1][cind, 0], self.formations[i + 1][cind, 1],
-                        c=self.labels[i][rind], cmap='tab20', s=5, marker='x', label='To')
-            plt.title(f"Transition {i} → {i + 1}")
-            plt.grid(True)
-            plt.legend()
-            plt.tight_layout()
-            plt.show()
+            self.plot_transitions(
+                self.formations[i], self.formations[i + 1],
+                self.labels[i], rind, cind, f"Transition {i} → {i + 1}"
+            )
+
+    def plot_transitions(self, from_pos, to_pos, from_labels, row_ind, col_ind, title):
+        plt.figure(figsize=(10, 10))
+
+        # cluster 수에 맞게 colormap 생성
+        num_clusters = self.K
+        cmap = plt.cm.get_cmap('hsv', num_clusters)
+        norm = mpl.colors.Normalize(vmin=0, vmax=num_clusters - 1)
+
+        for i, j in zip(row_ind, col_ind):
+            color_val = from_labels[i]
+            plt.plot([from_pos[i, 0], to_pos[j, 0]],
+                     [from_pos[i, 1], to_pos[j, 1]],
+                     color=cmap(norm(color_val)), alpha=0.02, linewidth=0.5)
+
+        plt.scatter(from_pos[row_ind, 0], from_pos[row_ind, 1],
+                    c=from_labels[row_ind], cmap=cmap, norm=norm, s=5, label="From")
+
+        plt.scatter(to_pos[col_ind, 0], to_pos[col_ind, 1],
+                    c=from_labels[row_ind], cmap=cmap, norm=norm, s=5, marker='x', label="To")
+
+        plt.title(title)
+        plt.grid(True)
+        plt.legend()
+        plt.tight_layout()
+        plt.show()

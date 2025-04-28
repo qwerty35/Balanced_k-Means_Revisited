@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 from balkmeans import balkmeans
+import matplotlib as mpl
 
 class ClusterMatching:
     def __init__(self, formation_files, num_clusters, clustering_params,
@@ -68,10 +69,8 @@ class ClusterMatching:
         for i, (rind, cind) in enumerate(self.transitions):
             moved = np.linalg.norm(self.formations[i][rind] - self.formations[i + 1][cind], axis=1)
             total_dists += moved
-            print(f"\n[Transition {i} → {i + 1}] 평균 이동 거리: {np.mean(moved):.2f}")
-            print(f"[Transition {i} → {i + 1}] 최대 이동 거리: {np.max(moved):.2f}")
-        print(f"\n[Total] 평균 이동 거리: {np.mean(total_dists):.2f}")
-        print(f"[Total] 최대 이동 거리: {np.max(total_dists):.2f}")
+            print(f"[Transition {i} → {i + 1}] 평균 이동 거리: {np.mean(moved):.2f}, 최대 이동 거리: {np.max(moved):.2f}")
+        print(f"[Total] 평균 이동 거리: {np.mean(total_dists):.2f}, 최대 이동 거리: {np.max(total_dists):.2f}")
 
     def plot_clusters(self, data, labels, centroids, title):
         plt.figure(figsize=(8, 8))
@@ -91,13 +90,24 @@ class ClusterMatching:
 
     def plot_transitions(self, from_pos, to_pos, from_labels, row_ind, col_ind, title):
         plt.figure(figsize=(10, 10))
-        for i, j in zip(row_ind, col_ind):
-            color = from_labels[i] % 20
-            plt.plot([from_pos[i, 0], to_pos[j, 0]], [from_pos[i, 1], to_pos[j, 1]],
-                     color=plt.cm.tab20(color), alpha=0.2, linewidth=0.5)
 
-        plt.scatter(from_pos[:, 0], from_pos[:, 1], c=from_labels, cmap='tab20', s=5, label="From")
-        plt.scatter(to_pos[col_ind, 0], to_pos[col_ind, 1], c=from_labels[row_ind], cmap='tab20', s=5, marker='x', label="To")
+        # cluster 수에 맞게 colormap 생성
+        num_clusters = self.K
+        cmap = plt.cm.get_cmap('nipy_spectral', num_clusters)  # cluster 수에 맞게 색 만들기
+        norm = mpl.colors.Normalize(vmin=0, vmax=num_clusters - 1)
+
+        for i, j in zip(row_ind, col_ind):
+            color_val = from_labels[i]
+            plt.plot([from_pos[i, 0], to_pos[j, 0]],
+                     [from_pos[i, 1], to_pos[j, 1]],
+                     color=cmap(norm(color_val)), alpha=0.02, linewidth=0.5)
+
+        plt.scatter(from_pos[row_ind, 0], from_pos[row_ind, 1],
+                    c=from_labels[row_ind], cmap=cmap, norm=norm, s=5, label="From")
+
+        plt.scatter(to_pos[col_ind, 0], to_pos[col_ind, 1],
+                    c=from_labels[row_ind], cmap=cmap, norm=norm, s=5, marker='x', label="To")
+
         plt.title(title)
         plt.grid(True)
         plt.legend()
