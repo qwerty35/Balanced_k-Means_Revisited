@@ -48,4 +48,7 @@ def bottleneck_assign(cost_matrix):
         else:
             low = mid
 
+    if best == None:
+        best = ([0], [0])
+
     return best

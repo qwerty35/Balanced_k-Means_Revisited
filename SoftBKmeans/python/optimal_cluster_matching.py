@@ -3,7 +3,7 @@ from pulp import LpProblem, LpMinimize, LpVariable, lpSum, LpBinary
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
-class MultiStepClusterMatching:
+class OptimalMultiStepClusterMatching:
     def __init__(self, formation_files, num_clusters, clustering_params,
                  cluster_cost_fn,
                  agent_cost_fn, agent_assign_fn):
@@ -34,7 +34,7 @@ class MultiStepClusterMatching:
 
     def match_all(self):
         cost_fn = lambda f, fl, t, tl, K: self.cluster_cost_fn(self.agent_cost_fn, f, fl, t, tl, K)
-        cluster_matches = self.multi_step_bottleneck_matching(self.formations, self.labels, cost_fn)
+        cluster_matches = self.optimal_bottleneck_matching(self.formations, self.labels, cost_fn)
 
         self.transitions = []
 
@@ -50,7 +50,7 @@ class MultiStepClusterMatching:
                 col_inds.extend(tidx[c])
             self.transitions.append((np.array(row_inds), np.array(col_inds)))
 
-    def multi_step_hungarian_matching(self, formations, labels, cost_fn):
+    def optimal_hungarian_matching(self, formations, labels, cost_fn):
         T = len(formations) - 1
         K = len(np.unique(labels[0]))
         cost_matrices = []
@@ -61,7 +61,7 @@ class MultiStepClusterMatching:
             cost_matrix = cost_fn(fpos, flab, tpos, tlab, K)
             cost_matrices.append(cost_matrix)
 
-        prob = LpProblem("MultiStepHungarianMatching", LpMinimize)
+        prob = LpProblem("OptimalHungarianMatching", LpMinimize)
 
         x = [[[LpVariable(f"x_{t}_{i}_{j}", cat=LpBinary)
                for j in range(K)] for i in range(K)] for t in range(T)]
@@ -88,7 +88,7 @@ class MultiStepClusterMatching:
 
         return matchings
 
-    def multi_step_bottleneck_matching(self, formations, labels, cluster_cost_fn):
+    def optimal_bottleneck_matching(self, formations, labels, cluster_cost_fn):
         T = len(formations) - 1
         K = len(np.unique(labels[0]))
 
@@ -99,7 +99,7 @@ class MultiStepClusterMatching:
             tpos, tlab = formations[t + 1], labels[t + 1]
             cost_matrices.append(cluster_cost_fn(fpos, flab, tpos, tlab, K))
 
-        prob = LpProblem("MultiStepBottleneckMatching", LpMinimize)
+        prob = LpProblem("OptimalBottleneckMatching", LpMinimize)
 
         # Variables
         x = [[[[LpVariable(f"x_{t}_{g}_{i}_{j}", cat=LpBinary)
@@ -211,6 +211,60 @@ class MultiStepClusterMatching:
                     c=from_labels[row_ind], cmap=cmap, norm=norm, s=5, marker='x', label="To")
 
         plt.title(title)
+        plt.grid(True)
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
+
+    def plot_max_movement_agent_path(self):
+        """
+        모든 에이전트의 누적 이동거리를 계산하고,
+        최대로 이동한 에이전트의 시계열 경로를 2D로 시각화한다.
+        """
+        num_agents = self.formations[0].shape[0]
+        total_dists = np.zeros(num_agents)
+
+        # 시점별 매칭 결과(transitions)를 사용해 에이전트 인덱스 추적
+        current_indices = np.arange(num_agents)  # t=0에서의 에이전트 인덱스
+        full_paths = [[idx] for idx in range(num_agents)]  # 각 에이전트의 시점별 인덱스 경로
+
+        for i, (rind, cind) in enumerate(self.transitions):
+            next_indices = np.zeros_like(current_indices)
+            moved_this_step = np.zeros_like(current_indices, dtype=float)
+
+            # current_indices의 각 에이전트 src가 rind에 존재하면 cind의 대응 dst로 이동
+            for idx, src in enumerate(current_indices):
+                matches = np.where(rind == src)[0]
+                if matches.size > 0:
+                    src_idx = matches[0]
+                    dst_idx = cind[src_idx]
+                    dist = np.linalg.norm(self.formations[i][src] - self.formations[i + 1][dst_idx])
+                    moved_this_step[idx] = dist
+                    next_indices[idx] = dst_idx
+                    full_paths[idx].append(dst_idx)
+                else:
+                    # 이 시점 매칭에 포함되지 않은 경우 자기 자신 유지(이동 0)
+                    next_indices[idx] = src
+                    full_paths[idx].append(src)
+
+            total_dists += moved_this_step
+            current_indices = next_indices.copy()
+
+        # 최대로 이동한 에이전트 선택
+        max_idx = int(np.argmax(total_dists))
+        path = full_paths[max_idx]
+
+        # 시각화
+        plt.figure(figsize=(10, 10))
+        for t in range(len(path) - 1):
+            p1 = self.formations[t][path[t]]
+            p2 = self.formations[t + 1][path[t + 1]]
+            plt.plot([p1[0], p2[0]], [p1[1], p2[1]], linewidth=1)
+
+        pts = [self.formations[t][path[t]] for t in range(len(path))]
+        xs, ys = zip(*pts)
+        plt.scatter(xs, ys, s=10, label='Agent Path')
+        plt.title(f"Most Moving Agent Path (ID: {max_idx}, Total: {total_dists[max_idx]:.2f})")
         plt.grid(True)
         plt.legend()
         plt.tight_layout()
