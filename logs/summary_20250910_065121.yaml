@@ -1,0 +1,63 @@
+timestamp: '2025-09-10T06:51:21'
+algorithm: Greedy
+params:
+  num_clusters: 10
+  clustering_params:
+    num_clusters: 10
+    maxdiff: 1
+    partly_remaining_factor: 0.15
+    increasing_penalty_factor: 1.01
+    seed: 3393
+    postprocess_iterations: 10
+  agent_assign: hungarian_assign
+  cluster_assign: bottleneck_assign
+  cluster_cost_fn: cluster_max_cost
+  agent_cost_fn: euclidean_distance_cost
+metrics:
+  max_total_distance: 2896.6392730777857
+  mean_total_distance: 2468.366581365425
+agent_total_distances:
+- 2092.014020876484
+- 2286.1870123238104
+- 2448.219228369009
+- 2449.8233689182193
+- 2121.673813525455
+- 2724.857104197014
+- 2546.2111127351723
+- 2388.0034091730913
+- 2395.1215380345366
+- 2531.5479818571935
+- 2753.3289908465645
+- 2218.183803873691
+- 2640.466764563924
+- 2595.1155968334388
+- 2436.5649068105704
+- 2083.5200645607156
+- 2307.041124654951
+- 2896.6392730777857
+- 2156.0985190016677
+- 2115.6258192965047
+- 2798.892412533663
+- 2571.129380638512
+- 2494.5741061945114
+- 2375.980697535165
+- 2342.121715297409
+- 2497.42823572486
+- 2881.514814686203
+- 2638.774888851023
+- 2693.2622153456323
+- 2571.075520625972
+num_formations: 10
+num_agents: 30
+formation_files:
+- ../datasets/s3_generated_Ashape.txt
+- ../datasets/s3_generated_Bshape.txt
+- ../datasets/s3_generated_Cshape.txt
+- ../datasets/s3_generated_Dshape.txt
+- ../datasets/s3_generated_Eshape.txt
+- ../datasets/s3_generated_Fshape.txt
+- ../datasets/s3_generated_Gshape.txt
+- ../datasets/s3_generated_Hshape.txt
+- ../datasets/s3_generated_Ishape.txt
+- ../datasets/s3_generated_Jshape.txt
+elapsed_time_sec: 2.3242831230163574
